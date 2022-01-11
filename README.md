@@ -2,8 +2,8 @@
 Copy Pasta notes to follow along during the 2022 Grad DB workshop
 ### Requirements
 * vscode
-* VLC or any other video stream player to follow the life stream
-  * Life stream url: `udp://@224.0.0.111:1111`
+* VLC or any other video stream player to follow the live stream
+  * Live stream url: `udp://@224.0.0.111:1111`
 
 ## Part 1 - Setup
 
