@@ -3,7 +3,7 @@ Copy Pasta notes to follow along during the 2022 Grad DB workshop
 ### Requirements
 * vscode
 * VLC or any other video stream player to follow the life stream
-  * Life stream url: `udp://@244.0.0.111:1111`
+  * Life stream url: `udp://@224.0.0.111:1111`
 
 ## Part 1 - Setup
 
@@ -42,7 +42,8 @@ dotnet add package -v 5.0.4 Microsoft.EntityFrameworkCore.InMemory
 ### Add an id property to the `Weatherforecast` model
 ```cs
 [Key]
-public int Id { get; set; }
+[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+public string Id { get; set; }
 ```
 
 ### Create a Data folder and create a new file `DataContext.cs`
@@ -241,7 +242,7 @@ dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
 ## Part 6 – Mongo
 ### Start Mongo
 ```
-docker run -d 0p 27017:27017 mongo:5.0.5-focal
+docker run -d -p 27017:27017 mongo:5.0.5-focal
 ```
 
 ### Add mongo package
@@ -249,50 +250,115 @@ docker run -d 0p 27017:27017 mongo:5.0.5-focal
 dotnet add package MongoDB.Driver
 ```
 
-### Modify `WeatherForecast.cs` by adding MongoForecast
+### Modify `WeatherForecast.cs`
 ```cs
-public class MongoForecast
-{
-  [BsonId]
-  [BsonRepresentation(BsonType.ObjectId)]
-  public string Id { get; set; }
-
-  public string City { get; set; }
-
-  public DateTime Date { get; set; }
-
-  public int TemperatureC { get; set; }
-
-  public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-
-  public string Summary { get; set; }
-}
+[Key]
+[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+[BsonId]
+[BsonRepresentation(BsonType.ObjectId)]
+public string Id { get; set; }
 ```
 
 ### Add a **GET** method to `WeatherForecastController.cs`
 ```cs
 [HttpGet("mongo")]
-public async Task<ActionResult<List<MongoForecast>>> GetMongoForcast()
+public async Task<ActionResult<List<WeatherForecast>>> GetMongoForecast()
 {
   var mongoClient = new MongoClient("mongodb://localhost:27017");
   var mongoDatabase = mongoClient.GetDatabase("weather");
-  var _booksCollection = mongoDatabase.GetCollection<MongoForecast>("forecasts");
+  var collection = mongoDatabase.GetCollection<WeatherForecast>("forecasts");
 
-  return await _booksCollection.Find(b => true).ToListAsync();
+  return await collection.Find(b => true).ToListAsync();
 }
 ```
 
 ### Add a **GET** method to `WeatherForecastController.cs`
 ```cs
 [HttpPost("mongo")]
-public async Task<ActionResult<MongoForecast>> AddMongoForcast([FromBody] MongoForecast forecast)
+public async Task<ActionResult<WeatherForecast>> AddMongoForecast([FromBody] WeatherForecast forecast)
 {
   var mongoClient = new MongoClient("mongodb://localhost:27017");
   var mongoDatabase = mongoClient.GetDatabase("weather");
-  var _booksCollection = mongoDatabase.GetCollection<MongoForecast>("forecasts");
+  var collection = mongoDatabase.GetCollection<WeatherForecast>("forecasts");
 
-  await _booksCollection.InsertOneAsync(forecast);
+  await collection.InsertOneAsync(forecast);
 
   return Ok(forecast);
+}
+```
+
+### Clean-up on isle 5 - Add a Services folder
+### Add a ForecastService.cs
+```cs
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using db1.Models;
+using MongoDB.Driver;
+
+namespace db1.Services
+{
+    public class ForecastService
+    {
+        private readonly IMongoCollection<WeatherForecast> _collection;
+
+        public ForecastService()
+        {
+            // TODO: for you to practice: inject config from application.json here
+            var mongoClient = new MongoClient("mongodb://localhost:27017");
+            var mongoDatabase = mongoClient.GetDatabase("weather");
+            _collection = mongoDatabase.GetCollection<WeatherForecast>("forecasts");
+        }
+
+        public async Task<List<WeatherForecast>> GetTop100Async()
+        {
+            return await _collection.Find(f => true).ToListAsync();
+        }
+
+        public async Task Add(WeatherForecast forecast)
+        {
+            await _collection.InsertOneAsync(forecast);
+        }
+    }
+}
+```
+
+### Update `Program.cs`
+```cs
+public static IHostBuilder CreateHostBuilder(string[] args) =>
+    Host.CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(webBuilder =>
+            webBuilder.UseStartup<Startup>()
+        )
+        .ConfigureServices(s =>
+            s.AddSingleton<ForecastService>()
+        );
+```
+
+### Inject the service into `WeatherForecastController.cs`
+```cs
+private readonly ForecastService _service;
+
+public WeatherForecastController(ILogger<WeatherForecastController> logger, DataContext ctx, ForecastService service)
+{
+    _logger = logger;
+    _ctx = ctx;
+    _service = service;
+}
+```
+
+### Update the mongo **GET** methods in `WeatherForecastController.cs` to use the service
+```cs
+[HttpGet("mongo")]
+public async Task<ActionResult<List<WeatherForecast>>> GetMongoForcast()
+{
+    return await _service.GetTop100Async();
+}
+
+[HttpPost("mongo")]
+public async Task<ActionResult<WeatherForecast>> AddMongoForcast([FromBody] WeatherForecast forecast)
+{
+    await _service.Add(forecast);
+
+    return Ok(forecast);
 }
 ```
