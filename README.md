@@ -121,7 +121,7 @@ Url for **GET** `http://127.0.0.1:5000/weatherforecast`
 ### Add 2 Get methods to `WeatherForecastController.cs`
 ```cs
 [HttpGet("{id}")]
-public async Task<ActionResult<WeatherForecast>> GetById(int id)
+public async Task<ActionResult<WeatherForecast>> GetById(string id)
 {
   var retVal = await _ctx.Forecasts.FindAsync(id);
 
