@@ -165,7 +165,7 @@ Type 2: https://referbruv.com/blog/posts/configuring-and-integrating-redis-cache
 ### Install vscode extension - PostgreSQL
 ### Connect to a remote PostgreSQL db
 ```
-ip: <My ip here>
+ip: 192.168.88.169
 usr: dev
 pwd: 12345
 db: weather
@@ -236,7 +236,7 @@ dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
 ### Change `startup.cs` to point to pg
 ```cs
   //services.AddDbContext<DataContext>(opt => opt.UseInMemoryDatabase("db1"));
-  services.AddDbContext<DataContext>(opt => opt.UseNpgsql(@"Host=127.0.0.1;Username=dev;Password=12345;Database=weather"));
+  services.AddDbContext<DataContext>(opt => opt.UseNpgsql(@"Host=192.168.88.169;Username=dev;Password=12345;Database=weather"));
 ```
 
 ## Part 6 – Mongo
@@ -264,7 +264,7 @@ public string Id { get; set; }
 [HttpGet("mongo")]
 public async Task<ActionResult<List<WeatherForecast>>> GetMongoForecast()
 {
-  var mongoClient = new MongoClient("mongodb://localhost:27017");
+  var mongoClient = new MongoClient("mongodb://192.168.88.169:27017");
   var mongoDatabase = mongoClient.GetDatabase("weather");
   var collection = mongoDatabase.GetCollection<WeatherForecast>("forecasts");
 
@@ -277,7 +277,7 @@ public async Task<ActionResult<List<WeatherForecast>>> GetMongoForecast()
 [HttpPost("mongo")]
 public async Task<ActionResult<WeatherForecast>> AddMongoForecast([FromBody] WeatherForecast forecast)
 {
-  var mongoClient = new MongoClient("mongodb://localhost:27017");
+  var mongoClient = new MongoClient("mongodb://192.168.88.169:27017");
   var mongoDatabase = mongoClient.GetDatabase("weather");
   var collection = mongoDatabase.GetCollection<WeatherForecast>("forecasts");
 
