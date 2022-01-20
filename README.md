@@ -1,4 +1,4 @@
-# DB Workship 2022
+# DB Workshop 2022
 Copy Pasta notes to follow along during the 2022 Grad DB workshop
 ### Requirements
 * vscode
